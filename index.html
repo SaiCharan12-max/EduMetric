@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CGPA/SGPA Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e0f2f1;
+      color: #333;
+      text-align: center;
+      padding: 30px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .dark-mode {
+      background: #1a1a1a;
+      color: #f0f0f0;
+    }
+
+    h1 {
+      color: #00695c;
+    }
+
+    .dark-mode h1 {
+      color: #80cbc4;
+    }
+
+    .calculator-box {
+      background: #ffffff;
+      border-radius: 15px;
+      padding: 30px;
+      width: 90%;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .dark-mode .calculator-box {
+      background: #2a2a2a;
+    }
+
+    select, input {
+      padding: 10px;
+      margin: 10px;
+      width: 80%;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #aaa;
+      outline: none;
+    }
+
+    .sgpa-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #00796b;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #004d40;
+    }
+
+    .dark-mode button {
+      background-color: #26a69a;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    .toggle-theme {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      cursor: pointer;
+      font-size: 16px;
+      background: #004d40;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 10px;
+    }
+
+    .dark-mode .toggle-theme {
+      background: #80cbc4;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toggle-theme" onclick="toggleTheme()">🌗 Toggle Theme</div>
+
+  <h1>EduCalcPro</h1>
+
+  <div class="calculator-box">
+    <select id="conversionType" onchange="toggleInputFields()">
+      <option value="sgpaToPercent">SGPA to Percentage</option>
+      <option value="cgpaToPercent">CGPA to Percentage</option>
+      <option value="percentToCgpa">Percentage to CGPA</option>
+      <option value="sgpaToCgpa">SGPA (All Sems) to CGPA</option>
+    </select>
+
+    <br>
+    <select id="gpaScale">
+      <option value="10">GPA Scale: 10</option>
+      <option value="4">GPA Scale: 4</option>
+    </select>
+
+    <input type="number" id="singleValue" placeholder="Enter value" step="0.01">
+
+    <div id="semesterCountSelector" style="display:none;">
+      <label for="semesters">How many semesters?</label>
+      <input type="number" id="semesters" min="1" max="12" value="8" onchange="generateSgpaInputs(this.value)">
+    </div>
+
+    <div id="sgpaInputsContainer" class="sgpa-inputs" style="display:none;"></div>
+
+    <div class="controls">
+      <button onclick="calculate()">Calculate</button>
+      <button onclick="resetFields()">Reset</button>
+      <button onclick="goBack()">Back</button>
+      <button onclick="goHome()">Home</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const sgpaInputsContainer = document.getElementById('sgpaInputsContainer');
+    const singleInput = document.getElementById('singleValue');
+    const semesterCountSelector = document.getElementById('semesterCountSelector');
+
+    function toggleInputFields() {
+      const type = document.getElementById('conversionType').value;
+      document.getElementById('result').innerText = '';
+      document.getElementById('result').className = '';
+
+      if (type === 'sgpaToCgpa') {
+        singleInput.style.display = 'none';
+        semesterCountSelector.style.display = 'block';
+        sgpaInputsContainer.style.display = 'grid';
+        generateSgpaInputs(document.getElementById('semesters').value);
+      } else {
+        singleInput.style.display = 'block';
+        semesterCountSelector.style.display = 'none';
+        sgpaInputsContainer.style.display = 'none';
+        sgpaInputsContainer.innerHTML = '';
+      }
+    }
+
+    function generateSgpaInputs(count) {
+      sgpaInputsContainer.innerHTML = '';
+      for (let i = 1; i <= count; i++) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = '0.01';
+        input.placeholder = `SGPA Sem ${i}`;
+        input.className = 'sgpaBox';
+        sgpaInputsContainer.appendChild(input);
+      }
+    }
+
+    function calculate() {
+      const type = document.getElementById('conversionType').value;
+      const scale = parseFloat(document.getElementById('gpaScale').value);
+      const result = document.getElementById('result');
+
+      if (type === 'sgpaToCgpa') {
+        const sgpaBoxes = document.querySelectorAll('.sgpaBox');
+        const sgpas = Array.from(sgpaBoxes)
+          .map(input => parseFloat(input.value))
+          .filter(val => !isNaN(val));
+
+        if (sgpas.length === 0) {
+          result.innerText = "Please enter SGPA values.";
+          result.className = 'error';
+          return;
+        }
+
+        const total = sgpas.reduce((sum, val) => sum + val, 0);
+        const cgpa = total / sgpas.length;
+        result.innerText = `Average CGPA: ${cgpa.toFixed(2)}`;
+        result.className = 'success';
+        return;
+      }
+
+      const value = parseFloat(document.getElementById('singleValue').value);
+      if (isNaN(value)) {
+        result.innerText = "Please enter a valid number.";
+        result.className = 'error';
+        return;
+      }
+
+      let output;
+      if (type === 'sgpaToPercent' || type === 'cgpaToPercent') {
+        output = scale === 10 ? (value - 0.75) * 10 : (value / scale) * 100;
+        result.innerText = `${type.includes('sgpa') ? 'SGPA' : 'CGPA'} ${value} = ${output.toFixed(2)}%`;
+      } else if (type === 'percentToCgpa') {
+        output = scale === 10 ? (value / 10) + 0.75 : (value / 100) * scale;
+        result.innerText = `Percentage ${value}% = ${output.toFixed(2)} CGPA`;
+      }
+      result.className = 'success';
+    }
+
+    function resetFields() {
+      document.getElementById('conversionType').selectedIndex = 0;
+      document.getElementById('singleValue').value = '';
+      document.getElementById('gpaScale').value = 10;
+      document.getElementById('result').innerText = '';
+      document.getElementById('result').className = '';
+      sgpaInputsContainer.innerHTML = '';
+      sgpaInputsContainer.style.display = 'none';
+      semesterCountSelector.style.display = 'none';
+      singleInput.style.display = 'block';
+    }
+
+    function goBack() {
+      alert("Back button clicked — Add your navigation logic here.");
+    }
+
+    function goHome() {
+      alert("Home button clicked — Add your homepage redirection logic here.");
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark-mode");
+    }
+  </script>
+
+</body>
+</html>
